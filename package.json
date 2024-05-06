@@ -1,0 +1,62 @@
+{
+  "name": "melon",
+  "packageManager": "yarn@4.1.0",
+  "scripts": {
+    "compile": "hardhat compile",
+    "pretty": "prettier --write --plugin=prettier-plugin-solidity ./hardhat.config.ts ./contracts ./test",
+    "flatten": "ethereum-waffle flatten",
+    "test": "hardhat test",
+    "clean": "rm -rf cache artifacts flatten"
+  },
+  "prettier": {
+    "printWidth": 100,
+    "tabWidth": 4,
+    "semi": true,
+    "singleQuote": false,
+    "overrides": [
+      {
+        "files": "*.js",
+        "options": {
+          "tabWidth": 2,
+          "semi": true,
+          "singleQuote": true
+        }
+      },
+      {
+        "files": "*.ts",
+        "options": {
+          "tabWidth": 2,
+          "semi": true,
+          "singleQuote": true
+        }
+      }
+    ]
+  }
+,
+  "dependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.5",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.4",
+    "@openzeppelin/contracts": "5.0.2",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": ">=9.1.0",
+    "@types/node": "^20.11.19",
+    "bignumber.js": "^9.1.2",
+    "chai": "^4.2.0",
+    "dotenv": "^16.4.5",
+    "ethereum-waffle": "^4.0.10",
+    "ethers": "^6.1.0",
+    "hardhat": "^2.20.1",
+    "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solidity-coverage": "^0.8.1",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.0",
+    "typescript": "^5.3.3"
+  }
+}
