@@ -50,10 +50,13 @@ contract Field is Sun {
         // mint Pod NFT
         IMelonAsset(field.asset).mint(recipient, field.nextPodId);
 
+        // add new Pod
+        field.pods[field.nextPodId] = PodInfo({lineIndex: field.podLine, amount: pods});
+
         emit PodPurchased(purchaser, recipient, field.nextPodId, field.podLine, pods);
 
+        // update the Pod line
         field.podLine = field.podLine + pods;
-        field.pods[field.nextPodId] = PodInfo({lineIndex: field.podLine, amount: pods});
 
         field.nextPodId = field.nextPodId + 1;
     }
