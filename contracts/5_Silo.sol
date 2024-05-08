@@ -74,9 +74,9 @@ contract Silo is Field {
     }
 
     // owner plant growth seeds
-    function plantSeeds(uint256 depositId) internal {
+    function plantSeeds(address caller, uint256 depositId) internal {
         address owner = IMelonAsset(silo.asset).ownerOf(depositId);
-        if (owner != owner) {
+        if (owner != caller) {
             revert NotDepositOwner();
         }
 
@@ -111,7 +111,7 @@ contract Silo is Field {
         }
 
         // plant seeds
-        plantSeeds(depositId);
+        plantSeeds(owner, depositId);
 
         // transfer growth Melons
         IERC20(melon).transfer(recipient, silo.deposits[depositId].melonGrowth);
