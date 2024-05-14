@@ -4,6 +4,7 @@ pragma solidity 0.8.24;
 import {Book} from "./0_Book.sol";
 import {Weather} from "./2_Weather.sol";
 import {IMelon} from "./interfaces/IMelon.sol";
+import {IOracle} from "./interfaces/IOracle.sol";
 
 contract Sun is Weather {
     event Sunrise(uint256 indexed season, int256 indexed deltaSupply);
@@ -46,6 +47,9 @@ contract Sun is Weather {
         }
 
         updateField(deltaSupply);
+
+        // update the oracle
+        IOracle(oracle).update();
 
         emit Sunrise(season.current, deltaSupply);
     }

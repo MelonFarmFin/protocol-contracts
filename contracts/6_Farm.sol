@@ -19,6 +19,9 @@ contract Farm is Silo {
         field.asset = address(new MelonAsset("Melon Field Pod", "melonPOD"));
     }
 
+    error NotAdmin();
+    error NotTreasury();
+
     function getCurrentSeasonInfo()
         public
         view
@@ -67,5 +70,29 @@ contract Farm is Silo {
     // redeem Pods
     function fieldRedeemPod(address redeemer, uint256 podId) external {
         redeemPodFor(redeemer, msg.sender, podId);
+    }
+
+    // admin add pool
+    function adminAddPool(address token, uint256 seedPerToken) external {
+        if (msg.sender != admin) {
+            revert NotAdmin();
+        }
+        pools.push(PoolInfo({token: token, seedPerToken: seedPerToken}));
+    }
+
+    // admin change oracle
+    function adminChangeOracle(address newOracle) external {
+        if (msg.sender != admin) {
+            revert NotAdmin();
+        }
+        oracle = newOracle;
+    }
+
+    // treasury change treasury address
+    function treasuryChange(address newTreasury) external {
+        if (msg.sender != treasury) {
+            revert NotTreasury();
+        }
+        treasury = newTreasury;
     }
 }
