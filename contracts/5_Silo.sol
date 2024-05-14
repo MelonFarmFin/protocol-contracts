@@ -8,18 +8,19 @@ import {Field} from "./4_Field.sol";
 import {IMelonAsset} from "./interfaces/IMelonAsset.sol";
 
 contract Silo is Field {
-    event Deposited(
+    event SiloDeposited(
         address indexed owner,
         uint256 indexed depositId,
         uint256 indexed amount,
         uint256 seeds
     );
-    event Withdrawn(
-        address indexed owner,
+    event SiloWithdrawn(address indexed owner, uint256 indexed depositId, uint256 indexed amount);
+    event SiloUpdated(
         uint256 indexed depositId,
-        uint256 indexed amount,
-        uint256 melons
+        uint256 indexed newMelonGrowth,
+        uint256 indexed newSeedPlant
     );
+    event MelonClaimed(address indexed owner, uint256 indexed depositId, uint256 indexed melons);
 
     error InvalidAmount();
     error DepositStillLocked();
@@ -68,7 +69,7 @@ contract Silo is Field {
         // transfer token into Farm
         IERC20(pools[poolId].token).transferFrom(caller, address(this), amount);
 
-        emit Deposited(depositor, silo.nextDepositId, amount, seeds);
+        emit SiloDeposited(depositor, silo.nextDepositId, amount, seeds);
 
         silo.nextDepositId = silo.nextDepositId + 1;
     }
@@ -94,6 +95,12 @@ contract Silo is Field {
         silo.deposits[depositId].melonDebts =
             (silo.totalMelons * silo.deposits[depositId].seeds) /
             silo.totalSeeds;
+
+        emit SiloUpdated(
+            depositId,
+            silo.deposits[depositId].melonGrowth,
+            silo.deposits[depositId].seeds
+        );
     }
 
     // caller call withdrawn position of caller
@@ -122,17 +129,33 @@ contract Silo is Field {
             silo.deposits[depositId].amount
         );
 
-        emit Withdrawn(
-            caller,
-            depositId,
-            silo.deposits[depositId].amount,
-            silo.deposits[depositId].melonGrowth
-        );
+        emit MelonClaimed(caller, depositId, silo.deposits[depositId].melonGrowth);
+
+        emit SiloWithdrawn(caller, depositId, silo.deposits[depositId].amount);
 
         // delete deposit position
         delete silo.deposits[depositId];
 
         // burn deposit NFT
         IMelonAsset(silo.asset).burn(depositId);
+    }
+
+    // clam growth Melons
+    function claimFor(address caller, address recipient, uint256 depositId) internal {
+        address owner = IMelonAsset(silo.asset).ownerOf(depositId);
+        if (owner != caller) {
+            revert NotDepositOwner();
+        }
+
+        // plant seeds
+        plantSeeds(owner, depositId);
+
+        // transfer growth Melons
+        IERC20(melon).transfer(recipient, silo.deposits[depositId].melonGrowth);
+
+        // clear growth Melons
+        silo.deposits[depositId].melonGrowth = 0;
+
+        emit MelonClaimed(caller, depositId, silo.deposits[depositId].melonGrowth);
     }
 }
