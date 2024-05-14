@@ -2,7 +2,6 @@ import chai, { expect } from 'chai';
 import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
 import { WrapperBuilder } from '@redstone-finance/evm-connector';
-import { BigNumber } from 'ethers';
 import { solidity } from 'ethereum-waffle';
 import { IUniswapV2Factory__factory, IUniswapV2Router__factory } from '../typechain-types';
 
@@ -28,7 +27,7 @@ describe('MelonOracle', function () {
 
     const uniswapV2Factory = IUniswapV2Factory__factory.connect(
       UNISWAP_V2_FACTORY_BASE,
-      signers[0]
+      signers[0],
     );
     const uniswapV2Router = IUniswapV2Router__factory.connect(UNISWAP_V2_ROUTER_BASE, signers[0]);
     await uniswapV2Factory.createPair(melonToken.address, wethToken.address);
@@ -46,12 +45,15 @@ describe('MelonOracle', function () {
       0,
       0,
       signers[0].address,
-      Math.floor(Date.now() / 1000) + 1000000
+      Math.floor(Date.now() / 1000) + 1000000,
     );
 
     // DEPLOY CHAINLINK MOCK AGGREGATOR
     const mockAggregatorFactory = await ethers.getContractFactory('MockAggregatorV3');
-    const mockAggregator = await mockAggregatorFactory.deploy(BigNumber.from(100000000000), 8); // 1000USD
+    const mockAggregator = await mockAggregatorFactory.deploy(
+      ethers.BigNumber.from('100000000000'),
+      8,
+    ); // 1000USD
 
     // DEPLOY MELON ORACLE
     const melonOracleFactory = await ethers.getContractFactory('MelonOracle');
@@ -64,7 +66,7 @@ describe('MelonOracle', function () {
       wethToken.address,
       24 * 60 * 60, // 1 day
       24, // 1 per hour,
-      currentBlockTime + 60 * 60 // start after 1 hour
+      currentBlockTime + 60 * 60, // start after 1 hour
     );
     const wrappedMelonOracle = WrapperBuilder.wrap(melonOracle).usingDataService({
       dataFeeds: ['ETH'],
@@ -156,7 +158,7 @@ describe('MelonOracle', function () {
                 0,
                 [f.melonToken.address, f.wethToken.address],
                 f.wallets.deployer.address,
-                ethers.constants.MaxUint256
+                ethers.constants.MaxUint256,
               );
           } else {
             // swap WETH -> MELON
@@ -167,7 +169,7 @@ describe('MelonOracle', function () {
                 0,
                 [f.wethToken.address, f.melonToken.address],
                 f.wallets.deployer.address,
-                ethers.constants.MaxUint256
+                ethers.constants.MaxUint256,
               );
           }
           await time.increase(60 * 60); // 1 hour
@@ -175,7 +177,7 @@ describe('MelonOracle', function () {
           await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
           console.log(
             'price',
-            ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice())
+            ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice()),
           );
         }
       });

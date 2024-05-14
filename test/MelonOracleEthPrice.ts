@@ -1,7 +1,7 @@
 // // FIXME: This test is only working on local network
 
 // import chai, { expect } from 'chai';
-// import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
+// import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
 // import { ethers } from 'hardhat';
 // import { WrapperBuilder } from '@redstone-finance/evm-connector';
 // import { BigNumber } from 'ethers';
@@ -34,6 +34,7 @@
 
 //     // DEPLOY MELON ORACLE
 //     const melonOracleFactory = await ethers.getContractFactory('MelonOracle');
+//     const currentBlockTime = await time.latest();
 //     const melonOracle = await melonOracleFactory.deploy(
 //       signers[0].address,
 //       mockAggregator.address,
@@ -41,7 +42,8 @@
 //       melonToken.address,
 //       wethToken.address,
 //       24 * 60 * 60, // 1 day
-//       24 // 1 per hour
+//       24, // 1 per hour,
+//       currentBlockTime, // start now
 //     );
 //     const wrappedMelonOracle = WrapperBuilder.wrap(melonOracle).usingDataService({
 //       dataFeeds: ['ETH'],
