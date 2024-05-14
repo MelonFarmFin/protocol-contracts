@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity =0.8.4;
+pragma solidity 0.8.24;
 
 /////////////////////
 /// FOR TEST ONLY ///
 /////////////////////
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {IUniswapV2Router} from "@uniswap/v2-core/contracts/interfaces/IUniswapV2Router.sol";
-import {UniswapV2Factory} from "@uniswap/v2-core/contracts/UniswapV2Factory.sol";
-import {UniswapV2Router} from "@uniswap/v2-core/contracts/UniswapV2Router.sol";
+import {IUniswapV2Router} from "../interfaces/uniswap/IUniswapV2Router.sol";
+import {MockUniswapV2Factory} from "./MockUniswapV2Factory.sol";
 
 contract MockAggregatorV3 is AggregatorV3Interface {
     int256 private price;

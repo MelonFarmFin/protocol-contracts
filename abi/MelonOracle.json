@@ -35,6 +35,11 @@
         "internalType": "uint8",
         "name": "_granularity",
         "type": "uint8"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_startTime",
+        "type": "uint256"
       }
     ],
     "stateMutability": "nonpayable",
@@ -129,6 +134,11 @@
   {
     "inputs": [],
     "name": "MelonOracle__MissingHistoricalData",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MelonOracle__MustAfterStartTime",
     "type": "error"
   },
   {
@@ -336,6 +346,25 @@
         "internalType": "address",
         "name": "",
         "type": "address"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_token",
+        "type": "address"
+      }
+    ],
+    "name": "getAssetPrice",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

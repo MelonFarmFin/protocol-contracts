@@ -55,6 +55,7 @@ describe('MelonOracle', function () {
 
     // DEPLOY MELON ORACLE
     const melonOracleFactory = await ethers.getContractFactory('MelonOracle');
+    const currentBlockTime = await time.latest();
     const melonOracle = await melonOracleFactory.deploy(
       signers[0].address,
       mockAggregator.address,
@@ -62,7 +63,8 @@ describe('MelonOracle', function () {
       melonToken.address,
       wethToken.address,
       24 * 60 * 60, // 1 day
-      24 // 1 per hour
+      24, // 1 per hour,
+      currentBlockTime + 60 * 60 // start after 1 hour
     );
     const wrappedMelonOracle = WrapperBuilder.wrap(melonOracle).usingDataService({
       dataFeeds: ['ETH'],
@@ -89,75 +91,94 @@ describe('MelonOracle', function () {
       expect(adminAddress).equal(f.wallets.deployer.address);
     });
   });
-  describe('#update', function () {
-    it('should be call by admin only', async function () {
+  describe('#startTime', function () {
+    it('should be reverted when call update and return 0 when get price before start time', async function () {
       const f = await loadFixture(deployMelonOracle);
-      await expect(f.wrappedMelonOracle.connect(f.wallets.user1).update()).to.be.reverted;
-      await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+      await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
+      const ethPrice = await f.wrappedMelonOracle.getEthPrice();
+      expect(ethPrice).to.be.eq(0);
+      const melonEthPrice = await f.wrappedMelonOracle.getAssetPrice(f.melonToken.address);
+      expect(melonEthPrice).to.be.eq(0);
     });
-  });
-  describe('#getMelonUsdPrice', function () {
-    it('should revert when missing historical data', async function () {
+    it('should be able to update after start time', async function () {
       const f = await loadFixture(deployMelonOracle);
-      // update 24 times
-      for (let i = 0; i < 24; i++) {
-        await time.increase(60 * 60); // 1 hour
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-        await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-      }
-      await expect(f.wrappedMelonOracle.getMelonUsdPrice()).not.to.be.reverted;
       await time.increase(60 * 60); // 1 hour
-      for (let i = 0; i < 23; i++) {
-        await time.increase(60 * 60); // 1 hour
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-        await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-      }
-      await expect(f.wrappedMelonOracle.getMelonUsdPrice()).to.be.reverted;
+      await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).not.to.be.reverted;
+      await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
+      const ethPrice = await f.wrappedMelonOracle.getEthPrice();
+      expect(ethPrice).to.be.eq(ethers.utils.parseEther('2000'));
     });
-
-    it('should log the Melon USD price correctly', async function () {
-      const f = await loadFixture(deployMelonOracle);
-      // update 24 times
-      for (let i = 0; i < 24; i++) {
+    describe('#update', function () {
+      it('should be call by admin only', async function () {
+        const f = await loadFixture(deployMelonOracle);
         await time.increase(60 * 60); // 1 hour
+        await expect(f.wrappedMelonOracle.connect(f.wallets.user1).update()).to.be.reverted;
         await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-        await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-      }
-      const price = await f.wrappedMelonOracle.getMelonUsdPrice();
-      console.log('price', ethers.utils.formatEther(price));
-      // doing  swap then update and show Melon USD price
-      for (let i = 0; i < 24; i++) {
-        if (i % 2 == 0) {
-          // swap MELON -> WETH
-          await f.uniswapV2Router
-            .connect(f.wallets.deployer)
-            .swapExactTokensForTokens(
-              ethers.utils.parseEther('1000'),
-              0,
-              [f.melonToken.address, f.wethToken.address],
-              f.wallets.deployer.address,
-              ethers.constants.MaxUint256
-            );
-        } else {
-          // swap WETH -> MELON
-          await f.uniswapV2Router
-            .connect(f.wallets.deployer)
-            .swapExactTokensForTokens(
-              ethers.utils.parseEther('1'),
-              0,
-              [f.wethToken.address, f.melonToken.address],
-              f.wallets.deployer.address,
-              ethers.constants.MaxUint256
-            );
+      });
+    });
+    describe('#getMelonUsdPrice', function () {
+      it('should revert when missing historical data', async function () {
+        const f = await loadFixture(deployMelonOracle);
+        // update 24 times
+        for (let i = 0; i < 24; i++) {
+          await time.increase(60 * 60); // 1 hour
+          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
         }
+        await expect(f.wrappedMelonOracle.getMelonUsdPrice()).not.to.be.reverted;
         await time.increase(60 * 60); // 1 hour
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-        await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-        console.log(
-          'price',
-          ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice())
-        );
-      }
+        for (let i = 0; i < 23; i++) {
+          await time.increase(60 * 60); // 1 hour
+          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
+        }
+        await expect(f.wrappedMelonOracle.getMelonUsdPrice()).to.be.reverted;
+      });
+
+      it('should log the Melon USD price correctly', async function () {
+        const f = await loadFixture(deployMelonOracle);
+        // update 24 times
+        for (let i = 0; i < 24; i++) {
+          await time.increase(60 * 60); // 1 hour
+          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
+        }
+        const price = await f.wrappedMelonOracle.getMelonUsdPrice();
+        console.log('price', ethers.utils.formatEther(price));
+        // doing  swap then update and show Melon USD price
+        for (let i = 0; i < 24; i++) {
+          if (i % 2 == 0) {
+            // swap MELON -> WETH
+            await f.uniswapV2Router
+              .connect(f.wallets.deployer)
+              .swapExactTokensForTokens(
+                ethers.utils.parseEther('1000'),
+                0,
+                [f.melonToken.address, f.wethToken.address],
+                f.wallets.deployer.address,
+                ethers.constants.MaxUint256
+              );
+          } else {
+            // swap WETH -> MELON
+            await f.uniswapV2Router
+              .connect(f.wallets.deployer)
+              .swapExactTokensForTokens(
+                ethers.utils.parseEther('1'),
+                0,
+                [f.wethToken.address, f.melonToken.address],
+                f.wallets.deployer.address,
+                ethers.constants.MaxUint256
+              );
+          }
+          await time.increase(60 * 60); // 1 hour
+          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
+          console.log(
+            'price',
+            ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice())
+          );
+        }
+      });
     });
   });
 });

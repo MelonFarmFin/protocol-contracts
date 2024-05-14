@@ -1,16 +1,18 @@
 //SPDX-License-Identifier: MIT
-pragma solidity =0.8.4;
+pragma solidity 0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {PrimaryProdDataServiceConsumerBase} from "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@uniswap/v2-core/contracts/libraries/UniswapV2Library.sol";
 
+import "../interfaces/IOracle.sol";
+import "../interfaces/uniswap/IUniswapV2Factory.sol";
+import "../interfaces/uniswap/IUniswapV2Pair.sol";
+
+import "../libraries/UniswapV2Library.sol";
 import "../libraries/UniswapV2OracleLibrary.sol";
 import "../libraries/FixedPoint.sol";
 
-contract MelonOracle is PrimaryProdDataServiceConsumerBase {
+contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
     using FixedPoint for *;
     //////////////////////////////
     // Errors                   //
@@ -23,6 +25,7 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
     error MelonOracle__InvalidTokenIn();
     error MelonOracle__MissingHistoricalData();
     error MelonOracle__InvalidTimeElapsed();
+    error MelonOracle__MustAfterStartTime();
 
     //////////////////////////////
     // Structs                  //
@@ -50,6 +53,7 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
     AggregatorV3Interface private priceFeed;
     address private admin;
     Observation[] public pairObservations;
+    uint256 private startTime;
 
     //////////////////////////////
     // Modifiers                //
@@ -71,7 +75,8 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
         address _melonToken,
         address _ethToken,
         uint32 _windowSize,
-        uint8 _granularity
+        uint8 _granularity,
+        uint256 _startTime
     ) {
         if (_granularity <= 1) {
             revert MelonOracle__GranularityMustGreaterThanOne();
@@ -91,6 +96,7 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
         GRANULARITY = _granularity;
         priceFeed = AggregatorV3Interface(_priceFeed);
         admin = _admin;
+        startTime = _startTime;
     }
 
     ////////////////////////////////
@@ -100,7 +106,10 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
         return admin;
     }
 
-    function update() external onlyAdmin(msg.sender) {
+    function update() external override onlyAdmin(msg.sender) {
+        if (startTime > block.timestamp) {
+            revert MelonOracle__MustAfterStartTime();
+        }
         for (uint8 i = uint8(pairObservations.length); i < GRANULARITY; i++) {
             pairObservations.push();
         }
@@ -117,13 +126,41 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
         }
     }
 
+    function getAssetPrice(address _token) external view override returns (uint256) {
+        if (startTime > block.timestamp) {
+            return 0;
+        }
+        if (_token != MELON_TOKEN && _token != ETH_TOKEN) {
+            revert MelonOracle__InvalidTokenIn();
+        }
+        return consult(_token, ONE_MELON);
+    }
+
+    function getEthPrice() public view override returns (uint256) {
+        if (startTime > block.timestamp) {
+            return 0;
+        }
+        (bool chainlinkPriceAvailable, uint256 chainlinkEthPrice) = getChainlinkEthPrice();
+        if (chainlinkPriceAvailable) {
+            return chainlinkEthPrice;
+        }
+        uint256 redstoneEthPrice = getRedstoneEthPrice();
+        return redstoneEthPrice;
+    }
+
     function getMelonUsdPrice() external view returns (uint256) {
+        if (startTime > block.timestamp) {
+            return 0;
+        }
         uint256 melonEthPrice = consult(MELON_TOKEN, ONE_MELON);
         uint256 ethUsdPrice = getEthPrice();
         return (melonEthPrice * ethUsdPrice) / PRECISION;
     }
 
     function consult(address _tokenIn, uint256 _amountIn) public view returns (uint256) {
+        if (startTime > block.timestamp) {
+            return 0;
+        }
         if (_tokenIn != MELON_TOKEN && _tokenIn != ETH_TOKEN) {
             revert MelonOracle__InvalidTokenIn();
         }
@@ -164,15 +201,6 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
     function observationIndexOf(uint32 _timestamp) public view returns (uint8) {
         uint32 epochPeriod = _timestamp / PERIODSIZE;
         return uint8(epochPeriod % GRANULARITY);
-    }
-
-    function getEthPrice() public view returns (uint256) {
-        (bool chainlinkPriceAvailable, uint256 chainlinkEthPrice) = getChainlinkEthPrice();
-        if (chainlinkPriceAvailable) {
-            return chainlinkEthPrice;
-        }
-        uint256 redstoneEthPrice = getRedstoneEthPrice();
-        return redstoneEthPrice;
     }
 
     /////////////////////////////////

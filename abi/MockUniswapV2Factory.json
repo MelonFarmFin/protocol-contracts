@@ -3,12 +3,25 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_factory",
+        "name": "tokenA",
+        "type": "address"
+      },
+      {
+        "internalType": "address",
+        "name": "tokenB",
+        "type": "address"
+      }
+    ],
+    "name": "createPair",
+    "outputs": [
+      {
+        "internalType": "address",
+        "name": "pair",
         "type": "address"
       }
     ],
     "stateMutability": "nonpayable",
-    "type": "constructor"
+    "type": "function"
   },
   {
     "inputs": [
@@ -23,24 +36,11 @@
         "type": "address"
       }
     ],
-    "name": "createPair",
+    "name": "getPair",
     "outputs": [
       {
         "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "factory",
-    "outputs": [
-      {
-        "internalType": "contract IUniswapV2Factory",
-        "name": "",
+        "name": "pair",
         "type": "address"
       }
     ],

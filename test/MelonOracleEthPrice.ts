@@ -1,4 +1,4 @@
-//  // FIXME: This test is only working on local network
+// // FIXME: This test is only working on local network
 
 // import chai, { expect } from 'chai';
 // import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
@@ -24,8 +24,8 @@
 //       .connect(signers[0])
 //       .mint(signers[0].address, ethers.utils.parseEther('2000000000'));
 
-//     const uniswapV2FactoryFactory = await ethers.getContractFactory('UniswapV2Factory');
-//     const uniswapV2Factory = await uniswapV2FactoryFactory.deploy(signers[0].address);
+//     const uniswapV2FactoryFactory = await ethers.getContractFactory('MockUniswapV2Factory');
+//     const uniswapV2Factory = await uniswapV2FactoryFactory.deploy();
 //     await uniswapV2Factory.createPair(melonToken.address, wethToken.address);
 
 //     // DEPLOY CHAINLINK MOCK AGGREGATOR
