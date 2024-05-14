@@ -50,10 +50,6 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase {
     AggregatorV3Interface private priceFeed;
     address private admin;
     Observation[] public pairObservations;
-    //////////////////////////////
-    // Events                   //
-    //////////////////////////////
-    event CollateralDeposited(address indexed user, address indexed token, uint256 amount);
 
     //////////////////////////////
     // Modifiers                //
