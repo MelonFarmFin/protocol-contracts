@@ -8,8 +8,7 @@ describe('Melon', function () {
     const factory = await ethers.getContractFactory('Melon');
 
     const melonTokenContract = await factory.deploy();
-    await melonTokenContract.waitForDeployment();
-    const melonTokenAddress = await melonTokenContract.getAddress();
+    const melonTokenAddress = melonTokenContract.address;
 
     // Generate 10 random addresses for experiments.
     const randomAddresses = Array.from({ length: 10 }, () => ethers.Wallet.createRandom().address);

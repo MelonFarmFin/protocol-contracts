@@ -1,5 +1,6 @@
 import { HardhatUserConfig } from 'hardhat/config';
-import '@nomicfoundation/hardhat-toolbox';
+import '@nomiclabs/hardhat-ethers';
+import '@typechain/hardhat';
 import 'hardhat-gas-reporter';
 import dotenv from 'dotenv';
 
@@ -16,7 +17,13 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: {
     // use default hardhat network
-    hardhat: {},
+    hardhat: {
+      forking: {
+        enabled: true,
+        url: 'https://base-pokt.nodies.app',
+        blockNumber: 14412469,
+      },
+    },
   },
   mocha: {
     timeout: 0,

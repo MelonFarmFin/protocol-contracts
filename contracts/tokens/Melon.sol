@@ -5,7 +5,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract Melon is Ownable, ERC20 {
-    constructor() Ownable(msg.sender) ERC20("Melon Stablecoin", "Melon") {}
+    constructor() Ownable() ERC20("Melon Stablecoin", "Melon") {}
 
     // the only minter is the Farm contract
     function mint(address _recipient, uint256 _amount) external onlyOwner {
