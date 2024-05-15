@@ -6,7 +6,7 @@
     "pretty": "prettier --write --plugin=prettier-plugin-solidity ./hardhat.config.ts ./contracts ./test",
     "flatten": "ethereum-waffle flatten",
     "test": "hardhat test",
-    "clean": "rm -rf cache artifacts flatten"
+    "clean": "rm -rf cache artifacts flatten typechain-types"
   },
   "prettier": {
     "printWidth": 100,
@@ -39,7 +39,7 @@
     "@nomiclabs/hardhat-ethers": "^2.0.5",
     "@nomiclabs/hardhat-etherscan": "^3.1.8",
     "@nomiclabs/hardhat-waffle": "^2.0.2",
-    "@openzeppelin/contracts": "^4.5.0",
+    "@openzeppelin/contracts": "4.9.6",
     "@redstone-finance/evm-connector": "^0.5.0",
     "@typechain/ethers-v5": "^9.0.0",
     "@typechain/hardhat": "^4.0.0",

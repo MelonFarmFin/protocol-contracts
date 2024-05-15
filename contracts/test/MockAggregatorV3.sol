@@ -5,8 +5,6 @@ pragma solidity 0.8.24;
 /// FOR TEST ONLY ///
 /////////////////////
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {IUniswapV2Router} from "../interfaces/uniswap/IUniswapV2Router.sol";
-import {MockUniswapV2Factory} from "./MockUniswapV2Factory.sol";
 
 contract MockAggregatorV3 is AggregatorV3Interface {
     int256 private price;

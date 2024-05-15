@@ -7,11 +7,12 @@ import { IUniswapV2Factory__factory, IUniswapV2Router__factory } from '../typech
 
 chai.use(solidity);
 
+// Base Mainnet Addresses
+const UNISWAP_V2_ROUTER_BASE = '0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24';
+const UNISWAP_V2_FACTORY_BASE = '0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6';
+
 describe('MelonOracle', function () {
   async function deployMelonOracle() {
-    const UNISWAP_V2_FACTORY_BASE = '0x8909Dc15e40173Ff4699343b6eB8132c65e18eC6';
-    const UNISWAP_V2_ROUTER_BASE = '0x4752ba5dbc23f44d87826276bf6fd6b1c372ad24';
-
     const signers = await ethers.getSigners();
 
     // DEPLOY TOKEN AND INIT UNISWAP PAIR
@@ -47,6 +48,7 @@ describe('MelonOracle', function () {
       signers[0].address,
       Math.floor(Date.now() / 1000) + 1000000,
     );
+    const pair = await uniswapV2Factory.getPair(melonToken.address, wethToken.address);
 
     // DEPLOY CHAINLINK MOCK AGGREGATOR
     const mockAggregatorFactory = await ethers.getContractFactory('MockAggregatorV3');
@@ -61,7 +63,7 @@ describe('MelonOracle', function () {
     const melonOracle = await melonOracleFactory.deploy(
       signers[0].address,
       mockAggregator.address,
-      UNISWAP_V2_FACTORY_BASE,
+      pair, // Melon-ETH pair
       melonToken.address,
       wethToken.address,
       24 * 60 * 60, // 1 day
