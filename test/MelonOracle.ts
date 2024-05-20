@@ -149,7 +149,7 @@ describe('MelonOracle', function () {
         }
         const price = await f.wrappedMelonOracle.getMelonUsdPrice();
         console.log('price', ethers.utils.formatEther(price));
-        // doing  swap then update and show Melon USD price
+        // do swap then update and show Melon USD price
         for (let i = 0; i < 24; i++) {
           if (i % 2 == 0) {
             // swap MELON -> WETH

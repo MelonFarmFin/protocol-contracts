@@ -9,6 +9,10 @@ library Book {
     // can be withdrawn after 8 seasons only
     uint internal constant SeasonDepositLocked = 8;
 
+    // fixed sunrise rewards
+    uint256 internal constant SeasonSunriseIncentiveMin = 1e18;
+    uint256 internal constant SeasonSunriseIncentiveMax = 10e18;
+
     // maximum growth seed ratio level
     uint internal constant MaxGrowthSeedLevel = 10496;
 

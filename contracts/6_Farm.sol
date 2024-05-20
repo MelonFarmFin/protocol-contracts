@@ -15,25 +15,12 @@ contract Farm is Silo {
         melon = address(new Melon());
 
         // deploy assets
-        silo.asset = address(new MelonAsset("Melon Silo Deposit", "melonSILO"));
-        field.asset = address(new MelonAsset("Melon Field Pod", "melonPOD"));
+        silo.asset = address(new MelonAsset("Melon Silo Deposit", "SILO"));
+        field.asset = address(new MelonAsset("Melon Field Pod", "POD"));
     }
 
     error NotAdmin();
     error NotTreasury();
-
-    function getCurrentSeasonInfo()
-        public
-        view
-        returns (
-            uint256 seasonCurrent,
-            uint256 seasonEndTime,
-            int256 deltaSupply,
-            int256 deltaPrice
-        )
-    {
-        return (season.current, season.endTime, getSupplyDelta(), getPriceDelta());
-    }
 
     // call by everyone
     function sunrise() external {

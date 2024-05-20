@@ -11,7 +11,7 @@ import {IOracle} from "./interfaces/IOracle.sol";
 contract Weather is Storage {
     int256 private constant PerfectBalance = 1e18;
 
-    function getSupplyDelta() internal view returns (int256) {
+    function getSupplyDelta() public view returns (int256) {
         uint256 melonPriceVsEth = IOracle(oracle).getAssetPrice(melon);
         uint256 ethPriceVsUsd = IOracle(oracle).getEthPrice();
 
@@ -23,7 +23,7 @@ contract Weather is Storage {
         return (melonSupply * melonPriceDiff) / melonPriceVsUSd;
     }
 
-    function getPriceDelta() internal view returns (int256) {
+    function getPriceDelta() public view returns (int256) {
         uint256 melonPriceVsEth = IOracle(oracle).getAssetPrice(melon);
         uint256 ethPriceVsUsd = IOracle(oracle).getEthPrice();
 
@@ -32,7 +32,7 @@ contract Weather is Storage {
         return melonPriceVsUSd - PerfectBalance;
     }
 
-    function getGrowthMelons(uint256 depositId) internal view returns (uint256) {
+    function getGrowthMelons(uint256 depositId) public view returns (uint256) {
         // include debts
         uint256 totalMelons = (silo.totalMelons * silo.deposits[depositId].seeds) / silo.totalSeeds;
 
@@ -45,7 +45,7 @@ contract Weather is Storage {
         return silo.deposits[depositId].melonGrowth + pendingMelons;
     }
 
-    function getGrowthSeeds(uint256 depositId) internal view returns (uint256) {
+    function getGrowthSeeds(uint256 depositId) public view returns (uint256) {
         uint256 depositedSeasons = season.current - silo.deposits[depositId].season;
 
         uint256 level;
