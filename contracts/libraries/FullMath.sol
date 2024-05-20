@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: CC-BY-4.0
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.4.0;
 
 // taken from https://medium.com/coinmonks/math-in-solidity-part-3-percents-and-proportions-4db014e080b1
-// license is CC-BY-4.0
+// license is MIT
 library FullMath {
     function fullMul(uint256 x, uint256 y) internal pure returns (uint256 l, uint256 h) {
         uint256 mm = mulmod(x, y, type(uint256).max);

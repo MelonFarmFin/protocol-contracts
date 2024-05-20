@@ -24,9 +24,6 @@ contract Sun is Weather {
             revert SeasonHasNotEndedYet();
         }
 
-        // update the oracle
-        IOracle(oracle).update();
-
         // increase season number and time
         season.current = season.current + 1;
         season.endTime = block.timestamp + Book.SeasonPeriod;
@@ -50,6 +47,9 @@ contract Sun is Weather {
         }
 
         updateField(deltaSupply);
+
+        // update the oracle
+        IOracle(oracle).update();
 
         emit Sunrise(season.current, deltaSupply);
     }

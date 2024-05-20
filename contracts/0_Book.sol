@@ -52,4 +52,35 @@ library Book {
     uint internal constant TemperatureJumpRateMedium = 1e16; // 1%
     uint internal constant TemperatureJumpRateHigh = 3e16; // 3%
     uint internal constant TemperatureJumpRateSuper = 6e16; // 6%
+
+    // addresses
+    address internal constant ChainlinkPriceFeedEthBaseTestnet =
+        0x4aDC67696bA383F43DD60A9e78F2C97Fbbfc7cb1;
+    address internal constant UniswapV2FactoryBaseTestnet =
+        0x02a84c1b3BBD7401a5f7fa98a384EBC70bB5749E; // pancakeswap
+    address internal constant WrappedEtherBaseTestnet = 0x4200000000000000000000000000000000000006;
+
+    function getChainlinkPriceFeedEth(string memory network) internal pure returns (address) {
+        if (keccak256(abi.encodePacked(network)) == keccak256(abi.encodePacked("BaseTestnet"))) {
+            return ChainlinkPriceFeedEthBaseTestnet;
+        }
+
+        return address(0);
+    }
+
+    function getUniswapV2Factory(string memory network) internal pure returns (address) {
+        if (keccak256(abi.encodePacked(network)) == keccak256(abi.encodePacked("BaseTestnet"))) {
+            return UniswapV2FactoryBaseTestnet;
+        }
+
+        return address(0);
+    }
+
+    function getWrappedEther(string memory network) internal pure returns (address) {
+        if (keccak256(abi.encodePacked(network)) == keccak256(abi.encodePacked("BaseTestnet"))) {
+            return WrappedEtherBaseTestnet;
+        }
+
+        return address(0);
+    }
 }

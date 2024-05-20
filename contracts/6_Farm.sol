@@ -1,22 +1,38 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import {Book} from "./0_Book.sol";
 import {Silo} from "./5_Silo.sol";
 import {Melon} from "./tokens/Melon.sol";
 import {MelonAsset} from "./tokens/MelonAsset.sol";
+import {MockOracle} from "./test/MockOracle.sol";
+import {IMelon} from "./interfaces/IMelon.sol";
+import {IUniswapV2Factory} from "./interfaces/uniswap/IUniswapV2Factory.sol";
 
 contract Farm is Silo {
-    constructor(address _oracle, address _admin, address _treasury) {
-        oracle = _oracle;
+    constructor(string memory _network, address _admin, address _treasury) {
+        if (keccak256(abi.encodePacked(_network)) != keccak256(abi.encodePacked("BaseTestnet"))) {
+            revert();
+        }
+
         admin = _admin;
         treasury = _treasury;
 
         // deploy Melon token
         melon = address(new Melon());
 
+        // mint initial liquidity Melons
+        IMelon(melon).mint(msg.sender, 1000e18);
+
         // deploy assets
         silo.asset = address(new MelonAsset("Melon Silo Deposit", "SILO"));
         field.asset = address(new MelonAsset("Melon Field Pod", "POD"));
+
+        address factory = Book.getUniswapV2Factory(_network);
+        address weth = Book.getWrappedEther(_network);
+        IUniswapV2Factory(factory).createPair(melon, weth);
+
+        oracle = address(new MockOracle(Book.getChainlinkPriceFeedEth(_network)));
     }
 
     error NotAdmin();
