@@ -35,15 +35,15 @@ contract Sun is Weather {
             uint256 newMelons = growSupply(uint256(deltaSupply));
 
             // incentive transaction caller with 1% new supply
-            // maximum of 100 melons
+            // limited at 10 Melons
             uint256 incentiveAmount = (newMelons * 1e18) / 100e18;
-            if (incentiveAmount > 100e18) {
-                incentiveAmount = 100e18;
+            if (incentiveAmount > Book.SeasonSunriseIncentiveMax) {
+                incentiveAmount = Book.SeasonSunriseIncentiveMax;
             }
             IMelon(melon).mint(msg.sender, incentiveAmount);
         } else {
-            // fixed 1 melon
-            IMelon(melon).mint(msg.sender, 1e18);
+            // incentive 1 Melon
+            IMelon(melon).mint(msg.sender, Book.SeasonSunriseIncentiveMin);
         }
 
         updateField(deltaSupply);
@@ -102,7 +102,7 @@ contract Sun is Weather {
         // podRate = (podLine - podRedeemable) / melonSupply
         uint256 podRate = (field.podLine - field.podRedeemable) / melonSupply;
 
-        // podDemand = melonAvailable / melonStart
+        // podDemand = soilAvailable / soilStart
         uint256 podDemand;
         if (field.soilStart > 0) {
             podDemand = (field.soilAvailable * 1e18) / field.soilStart;
