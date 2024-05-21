@@ -34,4 +34,8 @@ library UniswapV2OracleLibrary {
             price1Cumulative += uint(FixedPoint.fraction(reserve0, reserve1)._x) * timeElapsed;
         }
     }
+
+    function currentReserve(address pair) internal view returns (uint reserve0, uint reserve1) {
+        (reserve0, reserve1, ) = IUniswapV2Pair(pair).getReserves();
+    }
 }
