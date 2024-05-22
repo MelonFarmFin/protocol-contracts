@@ -66,8 +66,6 @@ describe('MelonOracle', function () {
       pair, // Melon-ETH pair
       melonToken.address,
       wethToken.address,
-      24 * 60 * 60, // 1 day
-      24, // 1 per hour,
       currentBlockTime + 60 * 60, // start after 1 hour
     );
     const wrappedMelonOracle = WrapperBuilder.wrap(melonOracle).usingDataService({
@@ -119,37 +117,36 @@ describe('MelonOracle', function () {
         await expect(f.wrappedMelonOracle.connect(f.wallets.user1).update()).to.be.reverted;
         await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
       });
+      it("should revert  when time hasn't passed 1 hour since last update", async function () {
+        const f = await loadFixture(deployMelonOracle);
+        await time.increase(60 * 60); // skip to start time
+        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+        await time.increase(60 * 30); // 30 minutes
+        await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
+      });
     });
     describe('#getMelonUsdPrice', function () {
-      it('should revert when missing historical data', async function () {
+      it('should using Melon<->ETH spot price before first update', async function () {
         const f = await loadFixture(deployMelonOracle);
-        // update 24 times
-        for (let i = 0; i < 24; i++) {
-          await time.increase(60 * 60); // 1 hour
-          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-        }
-        await expect(f.wrappedMelonOracle.getMelonUsdPrice()).not.to.be.reverted;
-        await time.increase(60 * 60); // 1 hour
-        for (let i = 0; i < 23; i++) {
-          await time.increase(60 * 60); // 1 hour
-          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-        }
-        await expect(f.wrappedMelonOracle.getMelonUsdPrice()).to.be.reverted;
+        await time.increase(60 * 60); // skip to start time
+        const melonEthPrice = await f.wrappedMelonOracle.getAssetPrice(f.melonToken.address);
+        const ethMelonPrice = await f.wrappedMelonOracle.getAssetPrice(f.wethToken.address);
+        console.log('Melon ETH price spot: ', ethers.utils.formatEther(melonEthPrice));
+        console.log('ETH Melon price spot: ', ethers.utils.formatEther(ethMelonPrice));
       });
 
       it('should log the Melon USD price correctly', async function () {
         const f = await loadFixture(deployMelonOracle);
-        // update 24 times
-        for (let i = 0; i < 24; i++) {
-          await time.increase(60 * 60); // 1 hour
-          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-          await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-        }
+        await time.increase(60 * 60); // skip start time
+
+        // get  price before first update (spot  price)
+        await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
         const price = await f.wrappedMelonOracle.getMelonUsdPrice();
         console.log('price', ethers.utils.formatEther(price));
-        // do swap then update and show Melon USD price
+
+        // after first update
+        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+        // doing  swap then update and show Melon USD price
         for (let i = 0; i < 24; i++) {
           if (i % 2 == 0) {
             // swap MELON -> WETH
@@ -175,8 +172,8 @@ describe('MelonOracle', function () {
               );
           }
           await time.increase(60 * 60); // 1 hour
-          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
           await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
+          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
           console.log(
             'price',
             ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice()),

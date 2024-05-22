@@ -5,7 +5,6 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {PrimaryProdDataServiceConsumerBase} from "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
 
 import "../interfaces/IOracle.sol";
-import "../interfaces/uniswap/IUniswapV2Pair.sol";
 
 import "../libraries/UniswapV2Library.sol";
 import "../libraries/UniswapV2OracleLibrary.sol";
@@ -19,26 +18,15 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
     //////////////////////////////
     error MelonOracle__MustBeAdmin();
     error MelonOracle__NoAvailablePriceFeed();
-    error MelonOracle__GranularityMustGreaterThanOne();
-    error MelonOracle__WindowSizeMustBeEvenlyDivisible();
     error MelonOracle__InvalidTokenPair();
     error MelonOracle__InvalidTokenIn();
-    error MelonOracle__MissingHistoricalData();
     error MelonOracle__InvalidTimeElapsed();
     error MelonOracle__MustAfterStartTime();
 
     //////////////////////////////
-    // Structs                  //
-    //////////////////////////////
-    struct Observation {
-        uint32 timestamp;
-        uint256 price0Cumulative;
-        uint256 price1Cumulative;
-    }
-
-    //////////////////////////////
     // State Variables          //
     //////////////////////////////
+    uint256 private constant PERIOD = 3600; // 1 hour
     uint256 private constant EXPIRED_DURATION = 300; // 5 minutes
     uint256 private constant PRECISION = 1e18;
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
@@ -50,15 +38,13 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
 
     AggregatorV3Interface private priceFeed;
 
-    uint8 public immutable granularity;
-    uint32 public immutable windowSize;
-    uint32 public immutable periodSize;
-
     address public immutable pair;
     address public immutable melonToken;
     address public immutable ethToken;
 
-    Observation[] public pairObservations;
+    uint32 private blockTimestampLast;
+    uint256 private lastPrice0Cumulative;
+    uint256 private lastPrice1Cumulative;
 
     //////////////////////////////
     // Modifiers                //
@@ -79,22 +65,11 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
         address _pair,
         address _melonToken,
         address _ethToken,
-        uint32 _windowSize,
-        uint8 _granularity,
         uint256 _startTime
     ) {
-        if (_granularity <= 1) {
-            revert MelonOracle__GranularityMustGreaterThanOne();
-        }
-        if ((periodSize = _windowSize / _granularity) * _granularity != _windowSize) {
-            revert MelonOracle__WindowSizeMustBeEvenlyDivisible();
-        }
-
         melonToken = _melonToken;
         ethToken = _ethToken;
         pair = _pair;
-        windowSize = _windowSize;
-        granularity = _granularity;
         priceFeed = AggregatorV3Interface(_priceFeed);
         admin = _admin;
         startTime = _startTime;
@@ -111,20 +86,16 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
         if (startTime > block.timestamp) {
             revert MelonOracle__MustAfterStartTime();
         }
-        for (uint8 i = uint8(pairObservations.length); i < granularity; i++) {
-            pairObservations.push();
-        }
-        uint8 observationIndex = observationIndexOf(uint32(block.timestamp));
-        Observation storage observation = pairObservations[observationIndex];
 
-        uint32 timeElapsed = uint32(block.timestamp) - observation.timestamp;
-        if (timeElapsed > periodSize) {
-            (uint256 price0Cumulative, uint256 price1Cumulative, ) = UniswapV2OracleLibrary
-                .currentCumulativePrices(pair);
-            observation.timestamp = uint32(block.timestamp);
-            observation.price0Cumulative = price0Cumulative;
-            observation.price1Cumulative = price1Cumulative;
+        uint32 timeElapsed = uint32(block.timestamp) - blockTimestampLast;
+        if (timeElapsed < PERIOD) {
+            revert MelonOracle__InvalidTimeElapsed();
         }
+        (uint256 price0Cumulative, uint256 price1Cumulative, ) = UniswapV2OracleLibrary
+            .currentCumulativePrices(pair);
+        blockTimestampLast = uint32(block.timestamp);
+        lastPrice0Cumulative = price0Cumulative;
+        lastPrice1Cumulative = price1Cumulative;
     }
 
     function getAssetPrice(address _token) external view override returns (uint256) {
@@ -166,42 +137,37 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
             revert MelonOracle__InvalidTokenIn();
         }
         address _tokenOut = _tokenIn == melonToken ? ethToken : melonToken;
-        Observation storage firstObservation = getFirstObservationInWindow();
-
-        uint32 timeElapsed = uint32(block.timestamp) - firstObservation.timestamp;
-        if (timeElapsed > windowSize) {
-            revert MelonOracle__MissingHistoricalData();
-        }
-        if (timeElapsed < windowSize - periodSize * 2) {
-            revert MelonOracle__InvalidTimeElapsed();
-        }
-
-        (uint256 price0Cumulative, uint256 price1Cumulative, ) = UniswapV2OracleLibrary
-            .currentCumulativePrices(pair);
+        uint32 timeElapsed = uint32(block.timestamp) - blockTimestampLast;
         (address token0, ) = UniswapV2Library.sortTokens(_tokenIn, _tokenOut);
-
-        if (token0 == _tokenIn) {
-            return
-                computeAmountOut(
-                    firstObservation.price0Cumulative,
-                    price0Cumulative,
-                    timeElapsed,
-                    _amountIn
-                );
+        if (blockTimestampLast == 0 || timeElapsed == 0) {
+            // return spot  price for first time or timeElapsed is 0
+            (uint256 reserve0, uint256 reserve1) = UniswapV2OracleLibrary.currentReserve(pair);
+            if (token0 == _tokenIn) {
+                return computeAmountOutSpot(reserve0, reserve1, _amountIn);
+            } else {
+                return computeAmountOutSpot(reserve1, reserve0, _amountIn);
+            }
         } else {
-            return
-                computeAmountOut(
-                    firstObservation.price1Cumulative,
-                    price1Cumulative,
-                    timeElapsed,
-                    _amountIn
-                );
+            (uint256 price0Cumulative, uint256 price1Cumulative, ) = UniswapV2OracleLibrary
+                .currentCumulativePrices(pair);
+            if (token0 == _tokenIn) {
+                return
+                    computeAmountOut(
+                        lastPrice0Cumulative,
+                        price0Cumulative,
+                        timeElapsed,
+                        _amountIn
+                    );
+            } else {
+                return
+                    computeAmountOut(
+                        lastPrice1Cumulative,
+                        price1Cumulative,
+                        timeElapsed,
+                        _amountIn
+                    );
+            }
         }
-    }
-
-    function observationIndexOf(uint32 _timestamp) public view returns (uint8) {
-        uint32 epochPeriod = _timestamp / periodSize;
-        return uint8(epochPeriod % granularity);
     }
 
     /////////////////////////////////
@@ -220,14 +186,15 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
         amountOut = priceAverage.mul(amountIn).decode144();
     }
 
-    function getFirstObservationInWindow()
-        private
-        view
-        returns (Observation storage firstObservation)
-    {
-        uint8 observationIndex = observationIndexOf(uint32(block.timestamp));
-        uint8 firstObservationIndex = (observationIndex + 1) % granularity;
-        firstObservation = pairObservations[firstObservationIndex];
+    function computeAmountOutSpot(
+        uint256 reserveIn,
+        uint256 reserveOut,
+        uint256 amountIn
+    ) private pure returns (uint256 amountOut) {
+        uint256 amountInWithFee = amountIn * 9975;
+        uint256 numerator = amountInWithFee * reserveOut;
+        uint256 denominator = reserveIn * 10000 + amountInWithFee;
+        amountOut = numerator / denominator;
     }
 
     function getChainlinkEthPrice() private view returns (bool, uint256) {
