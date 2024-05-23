@@ -113,6 +113,8 @@ contract Field is Sun {
 
             // transfer Melons to redeemer
             IMelon(melon).transfer(redeemer, redeemAmount);
+
+            emit PodRedeemed(redeemer, owner, podId, redeemAmount);
         }
 
         // burn the Pod NFT if the Pod was fully redeemed
