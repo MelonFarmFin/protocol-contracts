@@ -10,6 +10,8 @@ import {IMelon} from "./interfaces/IMelon.sol";
 import {IUniswapV2Factory} from "./interfaces/uniswap/IUniswapV2Factory.sol";
 
 contract Farm is Silo {
+    event SiloPoolAdded(uint256 indexed poolId, address indexed tokenAddress, uint256 seedPerToken);
+
     constructor(string memory _network, address _admin, address _treasury) {
         if (keccak256(abi.encodePacked(_network)) != keccak256(abi.encodePacked("BaseTestnet"))) {
             revert();
@@ -81,6 +83,7 @@ contract Farm is Silo {
             revert NotAdmin();
         }
         pools.push(PoolInfo({token: token, seedPerToken: seedPerToken}));
+        emit SiloPoolAdded(pools.length - 1, token, seedPerToken);
     }
 
     // admin change oracle
