@@ -20,7 +20,12 @@ contract Silo is Field {
         uint256 indexed newMelonGrowth,
         uint256 indexed newSeedPlant
     );
-    event MelonClaimed(address indexed owner, uint256 indexed depositId, uint256 indexed melons);
+    event MelonClaimed(
+        address indexed owner,
+        address indexed recipient,
+        uint256 indexed depositId,
+        uint256 melons
+    );
 
     error InvalidAmount();
     error DepositStillLocked();
@@ -129,7 +134,7 @@ contract Silo is Field {
             silo.deposits[depositId].amount
         );
 
-        emit MelonClaimed(caller, depositId, silo.deposits[depositId].melonGrowth);
+        emit MelonClaimed(caller, recipient, depositId, silo.deposits[depositId].melonGrowth);
 
         emit SiloWithdrawn(caller, depositId, silo.deposits[depositId].amount);
 
@@ -156,6 +161,6 @@ contract Silo is Field {
         // clear growth Melons
         silo.deposits[depositId].melonGrowth = 0;
 
-        emit MelonClaimed(caller, depositId, silo.deposits[depositId].melonGrowth);
+        emit MelonClaimed(caller, recipient, depositId, silo.deposits[depositId].melonGrowth);
     }
 }
