@@ -1,7 +1,6 @@
 import chai, { expect } from 'chai';
 import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
-import { WrapperBuilder } from '@redstone-finance/evm-connector';
 import { solidity } from 'ethereum-waffle';
 import { IUniswapV2Factory__factory, IUniswapV2Router__factory } from '../typechain-types';
 
