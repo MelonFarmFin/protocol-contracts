@@ -21,7 +21,7 @@ module.exports = {
       forking: {
         enabled: true,
         url: 'https://base-pokt.nodies.app',
-        blockNumber: 14412469,
+        blockNumber: 15164644,
       },
     },
   },

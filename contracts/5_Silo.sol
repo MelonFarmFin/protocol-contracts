@@ -94,6 +94,7 @@ contract Silo is Field {
 
         // update new seeds balance
         silo.deposits[depositId].seeds = silo.deposits[depositId].seeds + growthSeeds;
+        silo.totalSeeds = silo.totalSeeds + growthSeeds;
         silo.deposits[depositId].seedPlantSeason = season.current;
 
         // update Melons debts with new seeds balance
