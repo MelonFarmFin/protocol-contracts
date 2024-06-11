@@ -2,7 +2,6 @@
 pragma solidity 0.8.24;
 
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {PrimaryProdDataServiceConsumerBase} from "@redstone-finance/evm-connector/contracts/data-services/PrimaryProdDataServiceConsumerBase.sol";
 
 import "../interfaces/IOracle.sol";
 
@@ -10,14 +9,14 @@ import "../libraries/UniswapV2Library.sol";
 import "../libraries/UniswapV2OracleLibrary.sol";
 import "../libraries/FixedPoint.sol";
 
-contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
+contract MelonOracle is IOracle {
     using FixedPoint for *;
 
     //////////////////////////////
     // Errors                   //
     //////////////////////////////
     error MelonOracle__MustBeAdmin();
-    error MelonOracle__NoAvailablePriceFeed();
+    error MelonOracle__ExpiredPriceData();
     error MelonOracle__InvalidTokenPair();
     error MelonOracle__InvalidTokenIn();
     error MelonOracle__InvalidTimeElapsed();
@@ -112,12 +111,7 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
         if (startTime > block.timestamp) {
             return 0;
         }
-        (bool chainlinkPriceAvailable, uint256 chainlinkEthPrice) = getChainlinkEthPrice();
-        if (chainlinkPriceAvailable) {
-            return chainlinkEthPrice;
-        }
-        uint256 redstoneEthPrice = getRedstoneEthPrice();
-        return redstoneEthPrice;
+        return getChainlinkEthPrice();
     }
 
     function getMelonUsdPrice() external view returns (uint256) {
@@ -197,15 +191,11 @@ contract MelonOracle is PrimaryProdDataServiceConsumerBase, IOracle {
         amountOut = numerator / denominator;
     }
 
-    function getChainlinkEthPrice() private view returns (bool, uint256) {
+    function getChainlinkEthPrice() private view returns (uint256) {
         (, int256 price, , uint256 updatedAt, ) = priceFeed.latestRoundData();
         if (EXPIRED_DURATION < block.timestamp - updatedAt) {
-            return (false, 0);
+            revert MelonOracle__ExpiredPriceData();
         }
-        return (true, (uint256(price) * ADDITIONAL_FEED_PRECISION));
-    }
-
-    function getRedstoneEthPrice() private view returns (uint256 ethPrice) {
-        ethPrice = getOracleNumericValueFromTxMsg(bytes32("ETH")) * ADDITIONAL_FEED_PRECISION;
+        return uint256(price) * ADDITIONAL_FEED_PRECISION;
     }
 }

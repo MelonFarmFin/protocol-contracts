@@ -1,7 +1,6 @@
 import chai, { expect } from 'chai';
 import { loadFixture, time } from '@nomicfoundation/hardhat-network-helpers';
 import { ethers } from 'hardhat';
-import { WrapperBuilder } from '@redstone-finance/evm-connector';
 import { solidity } from 'ethereum-waffle';
 import { IUniswapV2Factory__factory, IUniswapV2Router__factory } from '../typechain-types';
 
@@ -68,12 +67,8 @@ describe('MelonOracle', function () {
       wethToken.address,
       currentBlockTime + 60 * 60, // start after 1 hour
     );
-    const wrappedMelonOracle = WrapperBuilder.wrap(melonOracle).usingDataService({
-      dataFeeds: ['ETH'],
-    });
     return {
       melonOracle,
-      wrappedMelonOracle,
       mockAggregator,
       uniswapV2Router,
       melonToken,
@@ -89,48 +84,48 @@ describe('MelonOracle', function () {
   describe('#constructor', function () {
     it('should be deployed correctly', async function () {
       const f = await loadFixture(deployMelonOracle);
-      const adminAddress = await f.wrappedMelonOracle.getAdmin();
+      const adminAddress = await f.melonOracle.getAdmin();
       expect(adminAddress).equal(f.wallets.deployer.address);
     });
   });
   describe('#startTime', function () {
     it('should be reverted when call update and return 0 when get price before start time', async function () {
       const f = await loadFixture(deployMelonOracle);
-      await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
-      const ethPrice = await f.wrappedMelonOracle.getEthPrice();
+      await expect(f.melonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
+      const ethPrice = await f.melonOracle.getEthPrice();
       expect(ethPrice).to.be.eq(0);
-      const melonEthPrice = await f.wrappedMelonOracle.getAssetPrice(f.melonToken.address);
+      const melonEthPrice = await f.melonOracle.getAssetPrice(f.melonToken.address);
       expect(melonEthPrice).to.be.eq(0);
     });
     it('should be able to update after start time', async function () {
       const f = await loadFixture(deployMelonOracle);
       await time.increase(60 * 60); // 1 hour
-      await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).not.to.be.reverted;
+      await expect(f.melonOracle.connect(f.wallets.deployer).update()).not.to.be.reverted;
       await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-      const ethPrice = await f.wrappedMelonOracle.getEthPrice();
+      const ethPrice = await f.melonOracle.getEthPrice();
       expect(ethPrice).to.be.eq(ethers.utils.parseEther('2000'));
     });
     describe('#update', function () {
       it('should be call by admin only', async function () {
         const f = await loadFixture(deployMelonOracle);
         await time.increase(60 * 60); // 1 hour
-        await expect(f.wrappedMelonOracle.connect(f.wallets.user1).update()).to.be.reverted;
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+        await expect(f.melonOracle.connect(f.wallets.user1).update()).to.be.reverted;
+        await f.melonOracle.connect(f.wallets.deployer).update();
       });
       it("should revert  when time hasn't passed 1 hour since last update", async function () {
         const f = await loadFixture(deployMelonOracle);
         await time.increase(60 * 60); // skip to start time
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+        await f.melonOracle.connect(f.wallets.deployer).update();
         await time.increase(60 * 30); // 30 minutes
-        await expect(f.wrappedMelonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
+        await expect(f.melonOracle.connect(f.wallets.deployer).update()).to.be.reverted;
       });
     });
     describe('#getMelonUsdPrice', function () {
       it('should using Melon<->ETH spot price before first update', async function () {
         const f = await loadFixture(deployMelonOracle);
         await time.increase(60 * 60); // skip to start time
-        const melonEthPrice = await f.wrappedMelonOracle.getAssetPrice(f.melonToken.address);
-        const ethMelonPrice = await f.wrappedMelonOracle.getAssetPrice(f.wethToken.address);
+        const melonEthPrice = await f.melonOracle.getAssetPrice(f.melonToken.address);
+        const ethMelonPrice = await f.melonOracle.getAssetPrice(f.wethToken.address);
         console.log('Melon ETH price spot: ', ethers.utils.formatEther(melonEthPrice));
         console.log('ETH Melon price spot: ', ethers.utils.formatEther(ethMelonPrice));
       });
@@ -141,11 +136,11 @@ describe('MelonOracle', function () {
 
         // get  price before first update (spot  price)
         await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-        const price = await f.wrappedMelonOracle.getMelonUsdPrice();
+        const price = await f.melonOracle.getMelonUsdPrice();
         console.log('price', ethers.utils.formatEther(price));
 
         // after first update
-        await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
+        await f.melonOracle.connect(f.wallets.deployer).update();
         // doing  swap then update and show Melon USD price
         for (let i = 0; i < 24; i++) {
           if (i % 2 == 0) {
@@ -173,11 +168,8 @@ describe('MelonOracle', function () {
           }
           await time.increase(60 * 60); // 1 hour
           await f.mockAggregator.setPrice(ethers.BigNumber.from('200000000000')); // 2000USD
-          await f.wrappedMelonOracle.connect(f.wallets.deployer).update();
-          console.log(
-            'price',
-            ethers.utils.formatEther(await f.wrappedMelonOracle.getMelonUsdPrice()),
-          );
+          await f.melonOracle.connect(f.wallets.deployer).update();
+          console.log('price', ethers.utils.formatEther(await f.melonOracle.getMelonUsdPrice()));
         }
       });
     });
