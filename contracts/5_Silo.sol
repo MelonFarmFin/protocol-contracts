@@ -139,6 +139,8 @@ contract Silo is Field {
 
         emit SiloWithdrawn(caller, depositId, silo.deposits[depositId].amount);
 
+        // remove seeds from Silo total seeds
+        silo.totalSeeds = silo.totalSeeds - silo.deposits[depositId].seeds;
         // delete deposit position
         delete silo.deposits[depositId];
 
