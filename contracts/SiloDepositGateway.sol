@@ -141,12 +141,25 @@ contract SiloDepositGateway {
     ) private {
         uint256 melonAmount;
         if (_tokenIn != MELON) {
-            // ETH and WETH
-            address[] memory path = new address[](2);
-            path[0] = WETH;
-            path[1] = MELON;
-            uint256[] memory amounts = IUniswapV2Router(router).getAmountsOut(_amountIn, path);
-            uint256 _amountOut = amounts[1];
+            address[] memory path;
+            uint256[] memory amounts;
+            uint256 _amountOut;
+            if (_tokenIn == address(0) || _tokenIn == WETH) {
+                // ETH and WETH
+                path = new address[](2);
+                path[0] = WETH;
+                path[1] = MELON;
+                amounts = IUniswapV2Router(router).getAmountsOut(_amountIn, path);
+                _amountOut = amounts[1];
+            } else {
+                // orther stable coin
+                path = new address[](3);
+                path[0] = _tokenIn;
+                path[1] = WETH;
+                path[2] = MELON;
+                amounts = IUniswapV2Router(router).getAmountsOut(_amountIn, path);
+                _amountOut = amounts[2];
+            }
             uint256 amountOutMin = (_amountOut * (SLIPPAGE_PRECISION - _swapSlippage)) /
                 SLIPPAGE_PRECISION;
             if (_tokenIn == address(0)) {
@@ -157,7 +170,7 @@ contract SiloDepositGateway {
                     block.timestamp
                 );
                 melonAmount = amounts[1];
-            } else {
+            } else if (_tokenIn == WETH) {
                 IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
                 IERC20(_tokenIn).approve(router, _amountIn);
                 amounts = IUniswapV2Router(router).swapExactTokensForTokens(
@@ -168,6 +181,18 @@ contract SiloDepositGateway {
                     block.timestamp
                 );
                 melonAmount = amounts[1];
+            } else {
+                // handle other stable coin
+                IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
+                IERC20(_tokenIn).approve(router, _amountIn);
+                amounts = IUniswapV2Router(router).swapExactTokensForTokens(
+                    _amountIn,
+                    amountOutMin,
+                    path,
+                    address(this),
+                    block.timestamp
+                );
+                melonAmount = amounts[2];
             }
         } else {
             IMelon(MELON).transferFrom(msg.sender, address(this), _amountIn);
@@ -186,10 +211,13 @@ contract SiloDepositGateway {
         uint256 lpAmount;
         if (_tokenIn == MELON) {
             lpAmount = siloDepositPool1WithMelon(_amountIn, _swapSlippage);
-        } else if (_tokenIn == WETH) {
-            lpAmount = siloDepositPool1WithWETH(_amountIn, _swapSlippage);
-        } else {
+        } else if (_tokenIn == address(0)) {
             lpAmount = siloDepositPool1WithETH(_amountIn, _swapSlippage);
+        } else if (_tokenIn == WETH) {
+            lpAmount = siloDepositPool1WithWETH(_tokenIn, _amountIn, _swapSlippage);
+        } else {
+            // other stable coin
+            lpAmount = siloDepositPool1WithOtherStableCoin(_tokenIn, _amountIn, _swapSlippage);
         }
         emit SiloDeposit(1, _tokenIn, _amountIn, lpAmount, _swapSlippage);
     }
@@ -244,10 +272,13 @@ contract SiloDepositGateway {
     }
 
     function siloDepositPool1WithWETH(
+        address _tokenIn,
         uint256 _amountIn,
         uint256 _swapSlippage
     ) private returns (uint256) {
-        IERC20(WETH).transferFrom(msg.sender, address(this), _amountIn);
+        if (_tokenIn == WETH) {
+            IERC20(WETH).transferFrom(msg.sender, address(this), _amountIn);
+        }
         IERC20(WETH).approve(router, _amountIn);
         uint256 swapWETHAmount = _amountIn / 2;
         uint256 addLiquidityWETHAmount = _amountIn - swapWETHAmount;
@@ -334,5 +365,29 @@ contract SiloDepositGateway {
             payable(msg.sender).transfer(refundEthAmount);
         }
         return lpAmount;
+    }
+
+    function siloDepositPool1WithOtherStableCoin(
+        address _tokenIn,
+        uint256 _amountIn,
+        uint256 _swapSlippage
+    ) private returns (uint256) {
+        IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
+        IERC20(_tokenIn).approve(router, _amountIn);
+        address[] memory path = new address[](2);
+        path[0] = _tokenIn;
+        path[1] = WETH;
+        uint256[] memory amounts = IUniswapV2Router(router).getAmountsOut(_amountIn, path);
+        uint256 _amountOut = amounts[1];
+        uint256 amountOutMin = (_amountOut * (SLIPPAGE_PRECISION - _swapSlippage)) /
+            SLIPPAGE_PRECISION;
+        amounts = IUniswapV2Router(router).swapExactTokensForTokens(
+            _amountIn,
+            amountOutMin,
+            path,
+            address(this),
+            block.timestamp
+        );
+        return siloDepositPool1WithWETH(_tokenIn, amounts[1], _swapSlippage);
     }
 }
