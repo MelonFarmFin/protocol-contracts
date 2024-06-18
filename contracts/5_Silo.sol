@@ -94,6 +94,7 @@ contract Silo is Field {
 
         // update new seeds balance
         silo.deposits[depositId].seeds = silo.deposits[depositId].seeds + growthSeeds;
+        silo.totalSeeds = silo.totalSeeds + growthSeeds;
         silo.deposits[depositId].seedPlantSeason = season.current;
 
         // update Melons debts with new seeds balance
@@ -138,6 +139,8 @@ contract Silo is Field {
 
         emit SiloWithdrawn(caller, depositId, silo.deposits[depositId].amount);
 
+        // remove seeds from Silo total seeds
+        silo.totalSeeds = silo.totalSeeds - silo.deposits[depositId].seeds;
         // delete deposit position
         delete silo.deposits[depositId];
 

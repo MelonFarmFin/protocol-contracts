@@ -52,20 +52,21 @@ contract Weather is Storage {
         if (depositedSeasons == 1 || depositedSeasons == 2) {
             level = depositedSeasons;
         } else {
-            uint256 previous1 = 1;
-            uint256 previous2 = 2;
-            uint256 current;
+            uint256 previous = 1;
+            uint256 current = 2;
             while (current < depositedSeasons) {
-                current = previous1 + previous2;
-
+                current = current + previous;
+                previous = current - previous;
                 if (current == depositedSeasons) {
                     level = current;
                 } else if (current > depositedSeasons) {
-                    level = previous2;
+                    level = previous;
                 }
             }
         }
 
-        return (silo.deposits[depositId].seeds * (1 + level / Book.MaxGrowthSeedLevel)) / 100;
+        return
+            (silo.deposits[depositId].seeds * (1e18 + ((level * 1e18) / Book.MaxGrowthSeedLevel))) /
+            1e20;
     }
 }
