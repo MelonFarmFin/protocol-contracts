@@ -20,8 +20,8 @@ module.exports = {
     hardhat: {
       forking: {
         enabled: true,
-        url: 'https://base-sepolia.g.alchemy.com/v2/VQiDmKHs47_v6g_EOXXBZs1OduAs3Hjy',
-        blockNumber: 11111000,
+        url: 'https://base-pokt.nodies.app',
+        blockNumber: 15164644,
       },
     },
   },
