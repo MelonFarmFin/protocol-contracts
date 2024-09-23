@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 import "../interfaces/IOracle.sol";
@@ -9,7 +10,7 @@ import "../libraries/UniswapV2Library.sol";
 import "../libraries/UniswapV2OracleLibrary.sol";
 import "../libraries/FixedPoint.sol";
 
-contract MelonOracle is IOracle {
+contract MelonOracle is IOracle, Ownable {
     using FixedPoint for *;
 
     //////////////////////////////
@@ -31,8 +32,6 @@ contract MelonOracle is IOracle {
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant ONE_MELON = 1e18;
 
-    address private admin;
-
     uint256 private startTime;
 
     AggregatorV3Interface private priceFeed;
@@ -46,42 +45,27 @@ contract MelonOracle is IOracle {
     uint256 private lastPrice1Cumulative;
 
     //////////////////////////////
-    // Modifiers                //
-    //////////////////////////////
-    modifier onlyAdmin(address _sender) {
-        if (_sender != admin) {
-            revert MelonOracle__MustBeAdmin();
-        }
-        _;
-    }
-
-    //////////////////////////////
     // Constructor              //
     //////////////////////////////
     constructor(
-        address _admin,
         address _priceFeed,
         address _pair,
         address _melonToken,
         address _ethToken,
         uint256 _startTime
-    ) {
+    ) Ownable() {
         melonToken = _melonToken;
         ethToken = _ethToken;
         pair = _pair;
         priceFeed = AggregatorV3Interface(_priceFeed);
-        admin = _admin;
         startTime = _startTime;
     }
 
     ////////////////////////////////
     // External & Public Function //
     ////////////////////////////////
-    function getAdmin() external view returns (address) {
-        return admin;
-    }
 
-    function update() external override onlyAdmin(msg.sender) {
+    function update() external override onlyOwner {
         if (startTime > block.timestamp) {
             revert MelonOracle__MustAfterStartTime();
         }
