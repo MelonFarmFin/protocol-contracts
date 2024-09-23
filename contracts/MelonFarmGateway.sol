@@ -4,9 +4,10 @@ pragma solidity 0.8.24;
 import {IUniswapV2Router} from "./interfaces/uniswap/IUniswapV2Router.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IMelon} from "./interfaces/IMelon.sol";
+import {IMelonAsset} from "./interfaces/IMelonAsset.sol";
 import {Farm} from "./6_Farm.sol";
 
-contract SiloDepositGateway {
+contract MelonFarmGateway {
     //////////////////////////////
     // Errors                   //
     //////////////////////////////
@@ -26,6 +27,8 @@ contract SiloDepositGateway {
     address public immutable MELON;
     address public immutable LP_MELON_WETH;
     address public immutable farm;
+    address public immutable siloAsset;
+    address public immutable podAsset;
 
     address private admin;
     mapping(address => bool) private allowedTokenIn;
@@ -59,7 +62,9 @@ contract SiloDepositGateway {
         address _WETH,
         address _MELON,
         address _LP_MELON_WETH,
-        address _farm
+        address _farm,
+        address _siloAsset,
+        address _podAsset
     ) {
         admin = msg.sender;
         router = _router;
@@ -67,6 +72,8 @@ contract SiloDepositGateway {
         MELON = _MELON;
         LP_MELON_WETH = _LP_MELON_WETH;
         farm = _farm;
+        siloAsset = _siloAsset;
+        podAsset = _podAsset;
 
         allowedTokenIn[_WETH] = true; // WETH
         allowedTokenIn[_MELON] = true; // MELON

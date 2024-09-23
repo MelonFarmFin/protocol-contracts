@@ -5,14 +5,14 @@ import {Book} from "./0_Book.sol";
 import {Silo} from "./5_Silo.sol";
 import {Melon} from "./tokens/Melon.sol";
 import {MelonAsset} from "./tokens/MelonAsset.sol";
-import {MockOracle} from "./test/MockOracle.sol";
+import {MelonOracle} from "./oracle/MelonOracle.sol";
 import {IMelon} from "./interfaces/IMelon.sol";
 import {IUniswapV2Factory} from "./interfaces/uniswap/IUniswapV2Factory.sol";
 
 contract Farm is Silo {
     event SiloPoolAdded(uint256 indexed poolId, address indexed tokenAddress, uint256 seedPerToken);
 
-    constructor(string memory _network, address _admin, address _treasury) {
+    constructor(string memory _network, address _admin, address _treasury, uint256 _startTime) {
         if (keccak256(abi.encodePacked(_network)) != keccak256(abi.encodePacked("BaseTestnet"))) {
             revert();
         }
@@ -32,9 +32,21 @@ contract Farm is Silo {
 
         address factory = Book.getUniswapV2Factory(_network);
         address weth = Book.getWrappedEther(_network);
-        IUniswapV2Factory(factory).createPair(melon, weth);
+        address pair = IUniswapV2Factory(factory).createPair(melon, weth);
 
-        oracle = address(new MockOracle(Book.getChainlinkPriceFeedEth(_network)));
+        oracle = address(
+            new MelonOracle(
+                Book.getChainlinkPriceFeedEth(_network),
+                pair,
+                melon,
+                Book.getWrappedEther(_network),
+                _startTime
+            )
+        );
+
+        // create silo pool
+        pools.push(PoolInfo({token: melon, seedPerToken: 1e18})); // 1 Melon = 1 seed
+        pools.push(PoolInfo({token: pair, seedPerToken: 2e18})); // 1 LP = 2 seed
     }
 
     error NotAdmin();
@@ -67,6 +79,14 @@ contract Farm is Silo {
         claimFor(msg.sender, recipient, depositId);
     }
 
+    // msg.sender batch claim growth Melons
+    function siloBatchClaim(address recipient, uint256[] calldata depositIds) external {
+        uint256 len = depositIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            claimFor(msg.sender, recipient, depositIds[i]);
+        }
+    }
+
     // purchase Pods
     function fieldPurchasePod(address recipient, uint256 amount) external {
         purchasePodFor(msg.sender, recipient, amount);
@@ -77,13 +97,11 @@ contract Farm is Silo {
         redeemPodFor(redeemer, msg.sender, podId);
     }
 
-    // admin add pool
-    function adminAddPool(address token, uint256 seedPerToken) external {
-        if (msg.sender != admin) {
-            revert NotAdmin();
+    function fieldBatchRedeemPod(address redeemer, uint256[] calldata podIds) external {
+        uint256 len = podIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            redeemPodFor(redeemer, msg.sender, podIds[i]);
         }
-        pools.push(PoolInfo({token: token, seedPerToken: seedPerToken}));
-        emit SiloPoolAdded(pools.length - 1, token, seedPerToken);
     }
 
     // admin change oracle

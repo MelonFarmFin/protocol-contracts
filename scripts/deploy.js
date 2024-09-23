@@ -23,6 +23,9 @@ const configs = {
 
   const web3 = new Web3(config.rpc);
   const deployerAddress = web3.eth.accounts.privateKeyToAccount(config.deployerKey).address;
+  // FIXME: save startTime for contract verification
+  const startTime = Math.round(new Date().getTime() / 1000);
+  console.log(startTime);
 
   console.log('');
   console.log(`... Deploy on network ${network} ...`);
@@ -37,6 +40,7 @@ const configs = {
       network,
       deployerAddress, // admin
       deployerAddress, // treasury
+      startTime
     ],
   );
 
