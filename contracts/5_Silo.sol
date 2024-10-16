@@ -30,6 +30,7 @@ contract Silo is Field {
     error InvalidAmount();
     error DepositStillLocked();
     error NotDepositOwner();
+    error AlreadyPlantSeedsThisSeason();
 
     // transfer token amount from caller
     // and issue deposit asset to depositor
@@ -55,7 +56,7 @@ contract Silo is Field {
         silo.totalSeeds = silo.totalSeeds + seeds;
 
         // calculate melon debts
-        uint256 melonDebts = (silo.totalMelons * seeds) / silo.totalSeeds;
+        uint256 melonDebts = (silo.melonRewardsPerSeed * seeds) / 1e18;
 
         // add new Deposit position
         silo.deposits[silo.nextDepositId] = DepositInfo({
@@ -85,6 +86,9 @@ contract Silo is Field {
         if (owner != caller) {
             revert NotDepositOwner();
         }
+        if (silo.deposits[depositId].seedPlantSeason == season.current) {
+            revert AlreadyPlantSeedsThisSeason();
+        }
 
         uint256 growthMelons = getGrowthMelons(depositId);
         uint256 growthSeeds = getGrowthSeeds(depositId);
@@ -99,8 +103,8 @@ contract Silo is Field {
 
         // update Melons debts with new seeds balance
         silo.deposits[depositId].melonDebts =
-            (silo.totalMelons * silo.deposits[depositId].seeds) /
-            silo.totalSeeds;
+            (silo.melonRewardsPerSeed * silo.deposits[depositId].seeds) /
+            1e18;
 
         emit SiloUpdated(
             depositId,

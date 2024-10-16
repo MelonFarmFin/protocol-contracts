@@ -34,7 +34,7 @@ contract Weather is Storage {
 
     function getGrowthMelons(uint256 depositId) public view returns (uint256) {
         // include debts
-        uint256 totalMelons = (silo.totalMelons * silo.deposits[depositId].seeds) / silo.totalSeeds;
+        uint256 totalMelons = (silo.melonRewardsPerSeed * silo.deposits[depositId].seeds) / 1e18;
 
         // pending - claimable
         uint256 pendingMelons = totalMelons > silo.deposits[depositId].melonDebts

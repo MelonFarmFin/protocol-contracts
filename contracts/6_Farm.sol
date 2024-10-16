@@ -46,7 +46,7 @@ contract Farm is Silo {
 
         // create silo pool
         pools.push(PoolInfo({token: melon, seedPerToken: 1e18})); // 1 Melon = 1 seed
-        pools.push(PoolInfo({token: pair, seedPerToken: 2e18})); // 1 LP = 2 seed
+        pools.push(PoolInfo({token: pair, seedPerToken: 100e18})); // 1 LP = 100 seed
     }
 
     error NotAdmin();
@@ -72,6 +72,15 @@ contract Farm is Silo {
     // and recipient will receive tokens + Melons after withdraw
     function siloWithdraw(address recipient, uint256 depositId) external {
         withdrawFor(msg.sender, recipient, depositId);
+    }
+
+    // silo batch withdraw, msg.sender must be the deposits owner
+    // and recipient will receive tokens + Melons after withdraw
+    function siloBatchWithdraw(address recipient, uint256[] calldata depositIds) external {
+        uint256 len = depositIds.length;
+        for (uint256 i = 0; i < len; i++) {
+            withdrawFor(msg.sender, recipient, depositIds[i]);
+        }
     }
 
     // msg.sender claim growth Melons

@@ -86,6 +86,13 @@ contract Sun is Weather {
 
         // distribute remain Melons to Silo
         silo.totalMelons = silo.totalMelons + newMelonForSilo;
+        // calculate new Melon rewards per Seed
+        if (silo.totalSeeds > 0) {
+            silo.melonRewardsPerSeed =
+                silo.melonRewardsPerSeed +
+                (newMelonForSilo * 1e18) /
+                silo.totalSeeds;
+        }
 
         // transfer melons to treasury
         IMelon(melon).transfer(treasury, newMelonsForTreasury);

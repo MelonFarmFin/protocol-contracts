@@ -56,6 +56,8 @@ contract Storage {
         uint256 totalSeeds;
         // the number of Melons were distributed into Silo
         uint256 totalMelons;
+        // the number of Melons were rewarded to a Seed
+        uint256 melonRewardsPerSeed;
         // the NFT asset address
         address asset;
         // the next silo deposit id
